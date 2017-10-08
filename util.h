@@ -16,8 +16,11 @@
 #include <sstream>
 #include <iomanip>
 #include <errno.h>
+#include <signal.h>
 
 #define MSG_SIZE 1024
+
+using namespace std;
 
 void error(const char *msg){
     perror(msg);
@@ -43,6 +46,9 @@ size_t recv_msg(int socket, char *buff, size_t buf_len) {
     if (ret==-1 && errno==EINTR) continue;
     else if (ret==-1 && errno==EWOULDBLOCK ) {
       return -1;
+    }
+    else if(ret==0){
+      return -2;
     }
     else break;
   }

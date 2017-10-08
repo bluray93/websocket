@@ -9,11 +9,12 @@ void *rcvThread(void *dummyPt){
     //bzero(test, 301);
     while(true) {
         bzero(test, MSG_SIZE+1);
-        if(recv_msg(socketFd, test, MSG_SIZE)<0) error("Cannot read");
+        int ret=recv_msg(socketFd, test, MSG_SIZE);
+        if(ret<0) error("Cannot read");
         string tester (test);
         cout << tester << endl;
         if(tester == "exit") break;
-        cout << "client" << endl;
+        cout << ret << endl;
     }
     cout << "\nClosing thread and conn" << endl;
     pthread_exit(NULL);

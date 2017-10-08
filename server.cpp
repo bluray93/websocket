@@ -9,11 +9,12 @@ void *rcvThread(void *dummyPt){
     //bzero(test, MSG_SIZE+1);
     while(true) {
         bzero(test, MSG_SIZE+1);
-        if(recv_msg(connFd, test, MSG_SIZE)<0) error("Cannot read");
+        int ret=recv_msg(connFd, test, MSG_SIZE);
+        if(ret<0) error("Cannot read");
         string tester (test);
         cout << tester << endl;
         if(tester == "exit") break;
-        cout << "server" << endl;
+        cout << ret << endl;
     }
     cout << "\nClosing thread and conn" << endl;
     close(connFd);
@@ -41,7 +42,7 @@ int main(int argc, char* argv[]){
 
     //bind socket
     if(bind(socketFd, (struct sockaddr *)&svrAdd, sizeof(svrAdd)) < 0) error("Cannot bind");
-    if (listen(socketFd, 5)<0) error("Cannot listen");
+    if(listen(socketFd, 5)<0) error("Cannot listen");
     len = sizeof(clntAdd);
     cout << "Listening" << endl;
     //this is where client connects. svr will hang in this mode until client conn
