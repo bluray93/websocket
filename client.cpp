@@ -1,67 +1,58 @@
-
-#include <string.h>
-#include <cstring>
-#include <unistd.h>
-#include <stdio.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <strings.h>
-#include <stdlib.h>
-#include <string>
-#include <time.h>
-#include <vector>
+#include "util.h"
 using namespace std;
 
+static int socketFd;
+
+void *rcvThread(void *dummyPt){
+    cout << "Thread No: " << pthread_self() << endl;
+    char test[MSG_SIZE];
+    //bzero(test, 301);
+    while(true) {
+        bzero(test, MSG_SIZE+1);
+        if(recv_msg(socketFd, test, MSG_SIZE)<0) error("Cannot read");
+        string tester (test);
+        cout << tester << endl;
+        if(tester == "exit") break;
+        cout << "client" << endl;
+    }
+    cout << "\nClosing thread and conn" << endl;
+    pthread_exit(NULL);
+}
+
 int main (int argc, char* argv[]){
-    int listenFd, portNo;
+    int portNo;
     struct sockaddr_in svrAdd;
     struct hostent *server;
-    if(argc < 3)    {
-        cerr<<"Syntax : ./client <host name> <port>"<<endl;
-        return 0;
-    }
+    pthread_t threadA;
+    if(argc < 3) error("Syntax : ./client <host name> <port>");
     portNo = atoi(argv[2]);
-    if((portNo > 65535) || (portNo < 2000)){
-        cerr<<"Please enter port number between 2000 - 65535"<<endl;
-        return 0;
-    }
+    if((portNo > 65535) || (portNo < 2000)) error("Please enter port number between 2000 - 65535");
     //create client skt
-    listenFd = socket(AF_INET, SOCK_STREAM, 0);
-    if(listenFd < 0){
-        cerr << "Cannot open socket" << endl;
-        return 0;
-    }
+    socketFd = socket(AF_INET, SOCK_STREAM, 0);
+    if(socketFd < 0) error("Cannot open socket");
     server = gethostbyname(argv[1]);
-    if(server == NULL){
-        cerr << "Host does not exist" << endl;
-        return 0;
-    }
+    if(server == NULL) error("Host does not exist");
     bzero((char *) &svrAdd, sizeof(svrAdd));
     svrAdd.sin_family = AF_INET;
     bcopy((char *) server -> h_addr, (char *) &svrAdd.sin_addr.s_addr, server -> h_length);
     svrAdd.sin_port = htons(portNo);
-    int checker = connect(listenFd,(struct sockaddr *) &svrAdd, sizeof(svrAdd));
-    if (checker < 0){
-        cerr << "Cannot connect!" << endl;
-        return 0;
-    }
+    if(connect(socketFd,(struct sockaddr *) &svrAdd, sizeof(svrAdd))<0) error("Cannot connect!");
+
+    pthread_create(&threadA, NULL, rcvThread, NULL);
+
     //send stuff to server
     while(true){
-        char s[300];
+        char s[MSG_SIZE];
         //cin.clear();
         //cin.ignore(256, '\n');
         cout << "Enter stuff: ";
-        bzero(s, 301);
-        cin.getline(s, 300);
-        write(listenFd, s, strlen(s));
+        bzero(s, MSG_SIZE+1);
+        cin.getline(s, MSG_SIZE);
+        if(send_msg(socketFd, s)<0) error("Cannot write");
         string tester (s);
         if(tester == "exit") break;
     }
+
+    pthread_join(threadA, NULL);
     return 0;
 }
